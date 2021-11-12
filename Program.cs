@@ -23,15 +23,16 @@ namespace LabWork1
             Console.Clear();
             Console.WriteLine("\nТелефонная книжка");
             Console.WriteLine("Напишите номер команды");
-            Console.WriteLine("\t1 - Создать новой контакт");
+            Console.WriteLine("\t1 - Создать новый контакт");
             Console.WriteLine("\t2 - Редактировать контакты");
             Console.WriteLine("\t3 - Удалить контакт");
-            Console.WriteLine("\t4 - Просмотреть контакт");
+            Console.WriteLine("\t4 - Информация о контакте");
             Console.WriteLine("\t5 - Подробный список контактов");
             //берем инпут, запускаем соответствующую функцию
             bool invalidinput = true;
             while (invalidinput)
             {
+                invalidinput = false;
                 if (!int.TryParse(Console.ReadLine(), out int result))
                 {
                     Console.WriteLine("Введите число с номером команды\n");
@@ -42,32 +43,28 @@ namespace LabWork1
                     switch (result)
                     {
                         case 1:
-                            invalidinput = false;
                             CreateNewNote();
                             break;
                         case 2:
-                            invalidinput = false;
                             EditNotes();
                             break;
                         case 3:
-                            invalidinput = false;
                             RemoveNotes();
                             break;
                         case 4:
-                            invalidinput = false;
                             ViewExpandedContactList();
-                            Console.WriteLine("Какой контакт вы хотите просмортеть?");
-                            ShowFullContact(ChooseContact("profileinfo"), out bool input);
-                            Console.WriteLine("Нажмите любую клавишу для выхода");
+                            Console.WriteLine("Какой контакт вы хотите открыть?");
+                            ChooseContact("profileinfo");
+                            Console.WriteLine("Для возврата в меню нажмите любую клавишу");
                             Console.ReadKey();
                             break;
                         case 5:
-                            invalidinput = false;
                             ViewExpandedContactList();
-                            Console.WriteLine("Нажмите любую клавишу для выхода");
+                            Console.WriteLine("Для возврата в меню нажмите любую клавишу");
                             Console.ReadKey();
                             break;
                         default:
+                            invalidinput = true;
                             Console.WriteLine("Такой команды не найдено");
                             break;
                     }
@@ -100,7 +97,15 @@ namespace LabWork1
             Console.WriteLine("Заметки (необязательно)");
             notes = GetNotes();
             //создаем entry в словаре dict 
-            ContactsDict.Add(ContactsDict.Count+1, new TelephoneProfile(ContactsDict.Count+1, surname, name, patronymic, phonenumber, country, date, workplace, workposition, notes));
+            int lowestkey = 1;
+            foreach(KeyValuePair<int, TelephoneProfile> item in ContactsDict)
+            {
+                if(item.Key == lowestkey)
+                {
+                    lowestkey++;
+                }
+            }
+            ContactsDict.Add(lowestkey, new TelephoneProfile(lowestkey, surname, name, patronymic, phonenumber, country, date, workplace, workposition, notes));
             Console.WriteLine("Контакт добавлен \n");
             MainMenu();
         }
@@ -137,13 +142,46 @@ namespace LabWork1
         }
         public static void RemoveNotes()
         {
-            ViewContactList();
-            Console.WriteLine("Выберите контакт для удаления");
-            int id = ChooseContact("none");
-            ContactsDict.Remove(id);
-            Console.WriteLine("Контакт успешно удален!");
-            Console.WriteLine("Нажмите любую клавишу для выхода");
-            Console.ReadKey();
+            if (!(ContactsDict.Count == 0))
+            {
+                while (true)
+                {
+                    Console.WriteLine("Точно хотите удалить контакт? \n\t0 - Точно\n\tЛюбое число для выхода");
+                    if (int.TryParse(Console.ReadLine(), out int result))
+                    {
+                        if (result == 0)
+                        {
+                            ViewContactList();
+                            Console.WriteLine("Выберите контакт для удаления");
+                            int id = ChooseContact("none");
+                            ContactsDict.Remove(id);
+                            Console.WriteLine("Контакт успешно удален!");
+                            Console.WriteLine("Для возврата в меню нажмите любую клавишу");
+                            Console.ReadKey();
+                            break;
+                        }
+                        else
+                        {
+                            MainMenu();
+                        }
+
+                    }
+                    else
+                    {
+                        Console.WriteLine("Число не буква, введи число");
+                        continue;
+                    }
+                }
+
+            }
+            else
+            {
+                Console.WriteLine("Нечего удалять, создай что-нибудь");
+                Console.WriteLine("Для возврата в меню нажми любую клавишу");
+                Console.ReadKey();
+            }
+            MainMenu();
+
         }
         public static void ViewExpandedContactList()
         {
@@ -154,15 +192,16 @@ namespace LabWork1
             else
             {
                 Console.WriteLine("Нет контактов, создайте новый!");
+                Console.WriteLine("Для возврата в меню нажмите любую клавишу");
+                Console.ReadKey();
                 MainMenu();
-            }          
+            }
         }
         public static void ViewContactList()
         {
-            int number = 1;
             foreach (KeyValuePair<int, TelephoneProfile> item in ContactsDict)
             {
-                Console.WriteLine($"{number++} - {item.Value.DetailedToString()}");
+                Console.WriteLine($"{item.Key} - {item.Value.DetailedToString()}");
             }
         }
         public static int ChooseContact(string flag)
@@ -173,11 +212,12 @@ namespace LabWork1
                 if (int.TryParse(Console.ReadLine(), out id))
                 {
                     //выводим полную информацию о контакте
-                    if (flag == "profileinfo")
+                    if (flag == "profileinfo" && ContactsDict.ContainsKey(id))
                     {
                         ShowFullContact(id, out bool invalidinput);
-                    }                    
-                    if (id > ContactsDict.Count || id < 1)
+                        break;
+                    }
+                    if (id > ContactsDict.Count || id < 1 || !ContactsDict.ContainsKey(id))
                     {
                         Console.WriteLine("Введите номер существующего контакта!");
                         continue;
@@ -191,7 +231,7 @@ namespace LabWork1
                 }
             }
             return id;
-        } 
+        }
         public static void ChooseAndEditField(int id)
         {
             bool localinput = true;
@@ -264,11 +304,12 @@ namespace LabWork1
             invalidinput = true;
             while (invalidinput)
             {
-                if (id <= ContactsDict.Count)
+                if (id <= ContactsDict.Count && id > 0)
                 {
                     invalidinput = false;
                     ContactsDict.TryGetValue(id, out TelephoneProfile value);
-                    Console.WriteLine($"Фамилия: {value.Surname} \nИмя: {value.Name}\nОтчество: {value.Patronymic}\nНомер телефона: {value.PhoneNumber}\nСтрана: {value.Country}\nДата рождения: {value.DateOfBirth}\nОрганизация: {value.Workplace}\nДолжность: {value.WorkPosition}\nЗаметки: {value.Notes}");
+                    Console.WriteLine($"Фамилия: \t{value.Surname} \nИмя: \t{value.Name}\nОтчество: \t{value.Patronymic}\nНомер телефона: \t{value.PhoneNumber}\nСтрана: \t{value.Country}\nДата рождения: \t{value.DateOfBirth}\nОрганизация: \t{value.Workplace}\nДолжность: \t{value.WorkPosition}\nЗаметки: \t{value.Notes}");
+
                 }
                 else
                 {
@@ -286,10 +327,11 @@ namespace LabWork1
                 {
                     Console.WriteLine("Фамилия не может быть пустой, это обязательная строка!");
                 }
-                else if(!surname.All(Char.IsLetter))
+                else if (!surname.All(Char.IsLetter))
                 {
                     Console.WriteLine("Должно состоять только из букв!");
-                } else
+                }
+                else
                 {
                     break;
                 }
@@ -344,7 +386,7 @@ namespace LabWork1
             while (true)
             {
                 string input = Console.ReadLine();
-                if (!long.TryParse(input, out phonenumber) || (input[0]=='-'))
+                if (!long.TryParse(input, out phonenumber) || (input[0] == '-'))
                 {
                     Console.WriteLine("Номер телефона должен состоять из цифр");
                 }
@@ -385,9 +427,9 @@ namespace LabWork1
             string date;
             date = Console.ReadLine();
             if (String.IsNullOrEmpty(date))
-                {
-                    return "";
-                }
+            {
+                return "";
+            }
             return date;
         }
         public static string GetWorkPlace()
@@ -435,7 +477,7 @@ namespace LabWork1
         public string Notes { get; set; }
         public override string ToString()
         {
-            return Surname+" "+Name;
+            return Surname + " " + Name;
         }
         public string DetailedToString()
         {
